@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:learn.shareai.run)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(\"C:/Users/周俊远/AppData/Local/Microsoft/WindowsApps/python.exe\" C:/Users/周俊远/.claude/skills/tavily/scripts/tavily_search.py --query \"latest Spring Boot version 2026\" --max-results 5 --format md)",
+      "Bash(echo:*)",
+      "WebSearch",
+      "Bash(py:*)",
+      "WebFetch(domain:spring.io)",
+      "Bash(curl:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate"
+    ]
+  }
+}
