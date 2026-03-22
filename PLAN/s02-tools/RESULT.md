@@ -1,0 +1,51 @@
+# s02: Tools - 实现效果
+
+## 核心功能
+
+### Tool 基类（agent/tools/base.py）
+
+```python
+class Tool(ABC):
+    name: str
+    description: str
+
+    @abstractmethod
+    def execute(self, **kwargs) -> ToolResult:
+        """执行工具逻辑"""
+        pass
+
+    def to_dict(self) -> dict:
+        """转换为字典格式"""
+        return {
+            "name": self.name,
+            "description": self.description,
+        }
+```
+
+### DispatchMap（agent/core/dispatch.py）
+
+```python
+class DispatchMap:
+    def __init__(self):
+        self._tools: dict[str, Tool] = {}
+
+    def register(self, tool: Tool) -> None:
+        """注册工具"""
+        self._tools[tool.name] = tool
+
+    def dispatch(self, name: str, arguments: dict) -> ToolResult:
+        """分发工具调用"""
+        tool = self._tools.get(name)
+        if not tool:
+            return ToolResult(error=f"Tool '{name}' not found")
+        return tool.execute(**arguments)
+```
+
+### 内置工具
+
+| 工具 | 文件 | 功能 |
+|------|------|------|
+| `bash` | `builtin/bash.py` | 执行 Shell 命令 |
+| `read` | `builtin/read.py` | 读取文件内容 |
+| `write` | `builtin/write.py` | 写入文件 |
+| `glob` | `builtin/glob.py` | 模式匹配文件 |
