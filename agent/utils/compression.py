@@ -1,12 +1,15 @@
 """s06: Compression Utilities - Micro, Auto, and Archive compression strategies."""
 
+from __future__ import annotations
+
 import json
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from agent.core.loop import Message
+if TYPE_CHECKING:
+    from agent.core.loop import Message
 
 
 # Tool name abbreviations for micro-compact
@@ -63,6 +66,9 @@ class MicroCompressor:
         Returns:
             Compacted message (may be same object if no changes needed)
         """
+        # Lazy import to avoid circular dependency
+        from agent.core.loop import Message
+
         if len(message.content) < self.threshold:
             return message
 
@@ -137,6 +143,9 @@ class AutoCompressor:
         Returns:
             Compacted message list with summarized older messages
         """
+        # Lazy import to avoid circular dependency
+        from agent.core.loop import Message
+
         if not self.should_compact(messages):
             return messages
 

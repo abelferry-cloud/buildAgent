@@ -8,13 +8,15 @@
 
 ## 待办事项
 
-### ❌ 未完成
-- [ ] 三层压缩策略（`agent/core/compact.py`）
-- [ ] Micro-compact: 空格移除
-- [ ] Auto-compact: 消息摘要
-- [ ] Archive: 旧消息归档到文件
+### ✅ 已完成
+- [x] 三层压缩策略（`agent/core/compact.py` + `agent/utils/compression.py`）
+- [x] Micro-compact: 空格移除
+- [x] Auto-compact: 消息摘要
+- [x] Archive: 旧消息归档到文件
+- [x] `CompressionManager` 集成到 `Agent` (`agent/core/loop.py`)
+- [x] `CompressionManager` 在 `main.py` 中初始化
 
 ### 验证方式
 ```bash
-python -c "from agent.core.compact import Compact; print('OK')"
+python -c "from agent.core.compact import CompressionManager, CompressionConfig; print('OK')"
 ```

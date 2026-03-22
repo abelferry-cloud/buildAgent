@@ -51,6 +51,7 @@ class Agent:
         llm_client: Optional[Any] = None,
         todo_manager: Optional[Any] = None,
         skill_loader: Optional[Any] = None,
+        compression_manager: Optional[Any] = None,
     ):
         self.tools = {t.name: t for t in tools}
         self.model = model
@@ -61,6 +62,7 @@ class Agent:
         self._llm_client = llm_client
         self._todo_manager = todo_manager
         self._skill_loader = skill_loader
+        self._compression_manager = compression_manager
 
     def set_llm_client(self, client) -> None:
         """Set the LLM client for API calls."""
@@ -222,6 +224,10 @@ class Agent:
                 if self._todo_manager:
                     self._todo_manager._rounds_since_todo = 0
 
+                # Apply compression if enabled (s06: Compact)
+                if self._compression_manager:
+                    self.messages = self._compression_manager.compress_if_needed(self.messages)
+
                 # Build result message
                 result_messages = []
                 for tool_call, result in all_results:
@@ -239,6 +245,10 @@ class Agent:
                 # Update nag counter (no todo tool, increment)
                 if self._todo_manager:
                     self._todo_manager.increment_round()
+
+                # Apply compression if enabled (s06: Compact)
+                if self._compression_manager:
+                    self.messages = self._compression_manager.compress_if_needed(self.messages)
 
                 return AgentResponse(
                     message=response_text,

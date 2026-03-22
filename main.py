@@ -12,6 +12,7 @@ from agent.core.dispatch import DispatchMap
 from agent.core.todo import TodoManager
 from agent.core.subagent import SubagentManager
 from agent.core.skills import SkillLoader
+from agent.core.compact import CompressionManager, CompressionConfig
 from agent.llm import DeepSeekClient
 
 # Load .env file if present (override existing env vars to ensure .env takes precedence)
@@ -62,6 +63,13 @@ async def main():
     set_todo_done_manager(todo_manager)
     set_todo_start_manager(todo_manager)
 
+    # Create compression config (s06: Compact)
+    config = CompressionConfig(
+        micro_compact_threshold=100,
+        auto_compact_interval=50,
+        archive_after_messages=100,
+    )
+
     # Create agent (one instance, reused across sessions)
     agent = Agent(
         tools=tools,
@@ -71,6 +79,10 @@ async def main():
         skill_loader=skill_loader,
     )
     agent.set_llm_client(llm_client)
+
+    # Wrap agent with compression manager (s06: Compact)
+    compression_manager = CompressionManager(agent=agent, config=config)
+    agent._compression_manager = compression_manager
 
     print("欢迎使用 BuildAgent（DeepSeek驱动）！输入 exit 或 quit 退出。")
 
