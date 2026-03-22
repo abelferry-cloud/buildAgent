@@ -220,6 +220,7 @@ class Agent:
     def _parse_tool_calls(self, response: str) -> list[ToolCall]:
         """Parse all tool calls from LLM response."""
         import re
+        import uuid
         tool_calls = []
 
         # Strategy 1: Try to find JSON in markdown code blocks
@@ -228,30 +229,34 @@ class Agent:
             try:
                 data = json.loads(code_block_match.group(1))
                 if "tool" in data and "args" in data:
-                    import uuid
                     tool_calls.append(ToolCall(
                         id=str(uuid.uuid4())[:8],
                         name=data["tool"],
                         arguments=data["args"],
                     ))
+                    return tool_calls  # Found in code block, return immediately
             except json.JSONDecodeError:
                 pass
 
-        # Strategy 2: Try to extract any JSON object with nested braces
-        # Pattern matches balanced braces, handling nesting
-        json_pattern = re.compile(r'\{(?:[^{}]|\{[^{}]*\})*\}')
-        for match in json_pattern.finditer(response):
-            try:
-                data = json.loads(match.group())
-                if "tool" in data and "args" in data:
-                    import uuid
-                    tool_calls.append(ToolCall(
-                        id=str(uuid.uuid4())[:8],
-                        name=data["tool"],
-                        arguments=data["args"],
-                    ))
-            except json.JSONDecodeError:
-                continue
+        # Strategy 2: Robust JSON extraction - find {" or [{ and parse progressively
+        # This handles nested braces correctly by using json.loads instead of regex
+        for start_idx in re.finditer(r'\{', response):
+            start = start_idx.start()
+            # Try parsing from this position with increasing lengths
+            for end_offset in range(10, len(response) - start + 1):
+                try:
+                    candidate = response[start:start + end_offset]
+                    data = json.loads(candidate)
+                    if "tool" in data and "args" in data:
+                        tool_calls.append(ToolCall(
+                            id=str(uuid.uuid4())[:8],
+                            name=data["tool"],
+                            arguments=data["args"],
+                        ))
+                        return tool_calls
+                except json.JSONDecodeError:
+                    # Not valid JSON yet, continue trying
+                    continue
 
         return tool_calls
 
