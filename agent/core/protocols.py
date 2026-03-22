@@ -455,3 +455,153 @@ class NotificationProtocol(Protocol):
         """Get list of events with subscribers."""
         with self._lock:
             return list(self._subscribers.keys())
+
+
+@dataclass
+class ShutdownRequest:
+    """A shutdown request."""
+
+    request_id: str
+    from_: str
+    to: str
+    reason: str
+    timestamp: float = field(default_factory=time.time)
+
+
+@dataclass
+class PlanApprovalRequest:
+    """A plan approval request."""
+
+    request_id: str
+    from_: str
+    to: str
+    plan: str
+    timestamp: float = field(default_factory=time.time)
+
+
+class ProtocolManager:
+    """
+    Manages team protocols for agent coordination.
+
+    Provides unified interface for request/response and notification protocols,
+    including shutdown and plan approval protocols.
+    """
+
+    def __init__(self):
+        self._teammate_manager = TeammateManager()
+        self._request_protocol = RequestResponseProtocol(self._teammate_manager)
+        self._notification_protocol = NotificationProtocol(self._teammate_manager)
+        self._shutdown_requests: dict[str, ShutdownRequest] = {}
+        self._plan_requests: dict[str, PlanApprovalRequest] = {}
+        self._lock = threading.Lock()
+
+    def create_shutdown_request(self, to: str, reason: str, from_: str = "") -> str:
+        """
+        Create a shutdown request.
+
+        Args:
+            to: The recipient identifier
+            reason: The reason for shutdown
+            from_: The sender identifier
+
+        Returns:
+            The request_id for tracking the response
+        """
+        request_id = str(uuid.uuid4())[:8]
+        request = ShutdownRequest(
+            request_id=request_id,
+            from_=from_,
+            to=to,
+            reason=reason,
+        )
+        with self._lock:
+            self._shutdown_requests[request_id] = request
+        return request_id
+
+    def respond_shutdown(self, request_id: str, approve: bool, from_: str = "") -> None:
+        """
+        Respond to a shutdown request.
+
+        Args:
+            request_id: The request ID to respond to
+            approve: True to approve, False to reject
+            from_: The responder identifier
+        """
+        with self._lock:
+            if request_id in self._shutdown_requests:
+                del self._shutdown_requests[request_id]
+
+    def get_shutdown_request(self, request_id: str) -> ShutdownRequest | None:
+        """Get a shutdown request by ID."""
+        with self._lock:
+            return self._shutdown_requests.get(request_id)
+
+    def list_shutdown_requests(self) -> list[ShutdownRequest]:
+        """List all pending shutdown requests."""
+        with self._lock:
+            return list(self._shutdown_requests.values())
+
+    def create_plan_request(self, to: str, plan: str, from_: str = "") -> str:
+        """
+        Create a plan approval request.
+
+        Args:
+            to: The recipient identifier
+            plan: The plan content to approve
+            from_: The sender identifier
+
+        Returns:
+            The request_id for tracking the response
+        """
+        request_id = str(uuid.uuid4())[:8]
+        request = PlanApprovalRequest(
+            request_id=request_id,
+            from_=from_,
+            to=to,
+            plan=plan,
+        )
+        with self._lock:
+            self._plan_requests[request_id] = request
+        return request_id
+
+    def respond_plan(
+        self, request_id: str, approve: bool, feedback: str = "", from_: str = ""
+    ) -> None:
+        """
+        Respond to a plan approval request.
+
+        Args:
+            request_id: The request ID to respond to
+            approve: True to approve, False to reject
+            feedback: Optional feedback message
+            from_: The responder identifier
+        """
+        with self._lock:
+            if request_id in self._plan_requests:
+                del self._plan_requests[request_id]
+
+    def get_plan_request(self, request_id: str) -> PlanApprovalRequest | None:
+        """Get a plan request by ID."""
+        with self._lock:
+            return self._plan_requests.get(request_id)
+
+    def list_plan_requests(self) -> list[PlanApprovalRequest]:
+        """List all pending plan approval requests."""
+        with self._lock:
+            return list(self._plan_requests.values())
+
+    def send_notification(self, to: str, event: str, data: dict, from_: str = "") -> None:
+        """Send a notification to a recipient."""
+        self._notification_protocol.send_notification(to, event, data, from_)
+
+    def subscribe(
+        self, event: str, handler: Callable[[ProtocolMessage], None]
+    ) -> None:
+        """Subscribe to an event type."""
+        self._notification_protocol.subscribe(event, handler)
+
+    def unsubscribe(
+        self, event: str, handler: Callable[[ProtocolMessage], None]
+    ) -> bool:
+        """Unsubscribe from an event type."""
+        return self._notification_protocol.unsubscribe(event, handler)
