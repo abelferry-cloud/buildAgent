@@ -26,5 +26,13 @@
 
 ### 验证方式
 ```bash
-python -c "from agent.core.protocols import ProtocolManager; print('OK')"
+python main.py
 ```
+
+试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
+
+Spawn alice as a coder. Then request her shutdown.
+List teammates to see alice's status after shutdown approval
+Spawn bob with a risky refactoring task. Review and reject his plan.
+Spawn charlie, have him submit a plan, then approve it.
+输入 /team 监控状态

@@ -22,5 +22,13 @@
 
 ### 验证方式
 ```bash
-python -c "from agent.core.worktree import WorktreeManager; print('OK')"
+python main.py
 ```
+
+试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
+
+Create tasks for backend auth and frontend login page, then list tasks.
+Create worktree "auth-refactor" for task 1, then bind task 2 to a new worktree "ui-login".
+Run "git status --short" in worktree "auth-refactor".
+Keep worktree "ui-login", then list worktrees and inspect events.
+Remove worktree "auth-refactor" with complete_task=true, then list tasks/worktrees/events.

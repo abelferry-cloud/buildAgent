@@ -22,6 +22,13 @@
 
 ### 验证方式
 ```bash
-python -c "from agent.core.tasks import TaskManager; tm = TaskManager('.test_state'); print('OK')"
-python -c "from agent.tools.builtin.task_create import TaskCreateTool; print('OK')"
+python main.py
 ```
+
+
+试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
+
+Create 3 tasks: "Setup project", "Write code", "Write tests". Make them depend on each other in order.
+List all tasks and show the dependency graph
+Complete task 1 and then list tasks to see task 2 unblocked
+Create a task board for refactoring: parse -> transform -> emit -> test, where transform and emit can run in parallel after parse

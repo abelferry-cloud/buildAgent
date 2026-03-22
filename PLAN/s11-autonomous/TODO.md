@@ -21,5 +21,12 @@
 
 ### 验证方式
 ```bash
-python -c "from agent.core.autonomous import TaskBoard, AutonomousGovernor; print('OK')"
+python main.py
 ```
+试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
+
+Create 3 tasks on the board, then spawn alice and bob. Watch them auto-claim.
+Spawn a coder teammate and let it find work from the task board itself
+Create tasks with dependencies. Watch teammates respect the blocked order.
+输入 /tasks 查看带 owner 的任务看板
+输入 /team 监控谁在工作、谁在空闲

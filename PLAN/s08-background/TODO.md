@@ -20,6 +20,10 @@
 
 ### 验证方式
 ```bash
-python -c "from agent.core.background import BackgroundManager; bm = BackgroundManager(); print('OK')"
-python -c "from agent.tools.builtin.background_run import BackgroundRunTool; print('OK')"
+python main.py
 ```
+试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
+
+Run "sleep 5 && echo done" in the background, then create a file while it runs
+Start 3 background tasks: "sleep 2", "sleep 4", "sleep 6". Check their status.
+Run pytest in the background and keep working on other things

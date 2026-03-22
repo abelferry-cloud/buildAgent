@@ -26,5 +26,12 @@
 
 ### 验证方式
 ```bash
-python -c "from agent.core.teams import TeammateManager; print('OK')"
+python main.py
 ```
+试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
+
+Spawn alice (coder) and bob (tester). Have alice send bob a message.
+Broadcast "status update: phase 1 complete" to all teammates
+Check the lead inbox for any messages
+输入 /team 查看团队名册和状态
+输入 /inbox 手动检查领导的收件箱
