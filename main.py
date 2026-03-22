@@ -10,7 +10,13 @@ from dotenv import load_dotenv
 from agent.core.loop import Agent
 from agent.core.dispatch import DispatchMap
 from agent.core.todo import TodoManager
+from agent.core.tasks import TaskManager
+from agent.core.background import BackgroundManager
 from agent.core.subagent import SubagentManager
+from agent.core.teams import TeammateManager
+from agent.core.protocols import ProtocolManager
+from agent.core.autonomous import TaskBoard
+from agent.core.worktree import WorktreeManager
 from agent.core.skills import SkillLoader
 from agent.core.compact import CompressionManager, CompressionConfig
 from agent.llm import DeepSeekClient
@@ -62,6 +68,76 @@ async def main():
     set_todo_list_manager(todo_manager)
     set_todo_done_manager(todo_manager)
     set_todo_start_manager(todo_manager)
+
+    # Initialize TaskManager and wire it to task tools (s07: Tasks)
+    task_manager = TaskManager(state_dir=".agent_tasks")
+    from agent.tools.builtin.task_create import set_task_manager as set_task_create_manager
+    from agent.tools.builtin.task_update import set_task_manager as set_task_update_manager
+    from agent.tools.builtin.task_list import set_task_manager as set_task_list_manager
+    from agent.tools.builtin.task_depends import set_task_manager as set_task_depends_manager
+
+    set_task_create_manager(task_manager)
+    set_task_update_manager(task_manager)
+    set_task_list_manager(task_manager)
+    set_task_depends_manager(task_manager)
+
+    # Initialize BackgroundManager and wire it to background tools (s08: Background Tasks)
+    background_manager = BackgroundManager()
+    from agent.tools.builtin.background_run import set_background_manager as set_bg_run
+    from agent.tools.builtin.background_wait import set_background_manager as set_bg_wait
+    from agent.tools.builtin.background_cancel import set_background_manager as set_bg_cancel
+
+    set_bg_run(background_manager)
+    set_bg_wait(background_manager)
+    set_bg_cancel(background_manager)
+
+    # Initialize TeammateManager and wire it to team tools (s09: Agent Teams)
+    teammate_manager = TeammateManager(team_id="main", mailbox_dir=".mailbox")
+    from agent.tools.builtin.team_send import set_teammate_manager as set_team_send_manager
+    from agent.tools.builtin.team_broadcast import set_teammate_manager as set_team_broadcast_manager
+    from agent.tools.builtin.team_list import set_teammate_manager as set_team_list_manager
+    from agent.tools.builtin.team_status import set_teammate_manager as set_team_status_manager
+
+    set_team_send_manager(teammate_manager)
+    set_team_broadcast_manager(teammate_manager)
+    set_team_list_manager(teammate_manager)
+    set_team_status_manager(teammate_manager)
+
+    # Initialize ProtocolManager and wire it to protocol tools (s10: Team Protocols)
+    protocol_manager = ProtocolManager()
+    from agent.tools.builtin.protocol_shutdown_req import set_protocol_manager as set_shutdown_req
+    from agent.tools.builtin.protocol_shutdown_resp import set_protocol_manager as set_shutdown_resp
+    from agent.tools.builtin.protocol_plan_req import set_protocol_manager as set_plan_req
+    from agent.tools.builtin.protocol_plan_resp import set_protocol_manager as set_plan_resp
+
+    set_shutdown_req(protocol_manager)
+    set_shutdown_resp(protocol_manager)
+    set_plan_req(protocol_manager)
+    set_plan_resp(protocol_manager)
+
+    # Initialize TaskBoard and wire it to board tools (s11: Autonomous Agents)
+    task_board = TaskBoard(board_file=".taskboard.json")
+    from agent.tools.builtin.board_post import set_board as set_board_post
+    from agent.tools.builtin.board_poll import set_board as set_board_poll
+    from agent.tools.builtin.board_claim import set_board as set_board_claim
+    from agent.tools.builtin.board_complete import set_board as set_board_complete
+
+    set_board_post(task_board)
+    set_board_poll(task_board)
+    set_board_claim(task_board)
+    set_board_complete(task_board)
+
+    # Initialize WorktreeManager and wire it to worktree tools (s12: Worktree + Isolation)
+    worktree_manager = WorktreeManager(base_dir=".worktrees")
+    from agent.tools.builtin.worktree_create import set_worktree_manager as set_wm_create
+    from agent.tools.builtin.worktree_list import set_worktree_manager as set_wm_list
+    from agent.tools.builtin.worktree_switch import set_worktree_manager as set_wm_switch
+    from agent.tools.builtin.worktree_destroy import set_worktree_manager as set_wm_destroy
+
+    set_wm_create(worktree_manager)
+    set_wm_list(worktree_manager)
+    set_wm_switch(worktree_manager)
+    set_wm_destroy(worktree_manager)
 
     # Create compression config (s06: Compact)
     config = CompressionConfig(
