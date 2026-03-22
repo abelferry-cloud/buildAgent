@@ -40,6 +40,8 @@ class Agent:
     Each iteration: think, decide tool, execute, repeat.
     """
 
+    TODO_TOOLS = {"todo_add", "todo_list", "todo_done", "todo_start"}
+
     def __init__(
         self,
         tools: list[Tool],
@@ -47,6 +49,7 @@ class Agent:
         system_prompt: Optional[str] = None,
         max_iterations: int = 100,
         llm_client: Optional[Any] = None,
+        todo_manager: Optional[Any] = None,
     ):
         self.tools = {t.name: t for t in tools}
         self.model = model
@@ -55,6 +58,7 @@ class Agent:
         self.messages: list[Message] = []
         self._iteration_count = 0
         self._llm_client = llm_client
+        self._todo_manager = todo_manager
 
     def set_llm_client(self, client) -> None:
         """Set the LLM client for API calls."""
@@ -131,8 +135,13 @@ class Agent:
             # Build the prompt with tool context
             messages_for_llm = self.messages.copy()
 
-            # Add tool context to system message
+            # Build base system message with tools
             system_with_tools = f"{self.system_prompt}\n\n## Available Tools:\n{tool_descriptions}\n\n## Instructions:\n- If you need to use a tool, respond with a JSON object: {{\"tool\": \"tool_name\", \"args\": {{\"arg1\": \"value1\"}}}}\n- If no tool is needed, just respond directly.\n- IMPORTANT: Use the 'write' tool to create or modify files, NOT bash commands like 'echo' or output redirection."
+
+            # Inject nag reminder if threshold reached (s03: TodoWrite)
+            if self._todo_manager and self._todo_manager.should_nag():
+                nag_msg = self._todo_manager.get_nag_message()
+                system_with_tools = f"{system_with_tools}\n\n{nag_msg}"
 
             # Update system message
             messages_for_llm[0] = Message(role="system", content=system_with_tools)
@@ -156,6 +165,9 @@ class Agent:
             # Check if LLM wants to call a tool
             tool_calls = self._parse_tool_calls(response_text)
 
+            # Track if any todo tool was used
+            todo_tool_used = any(tc.name in self.TODO_TOOLS for tc in tool_calls) if tool_calls else False
+
             if tool_calls:
                 # Execute all tool calls
                 all_results = []
@@ -178,6 +190,10 @@ class Agent:
                         tool_call_id=tool_call.id,
                     ))
 
+                # Update nag counter (todo tool used, reset counter)
+                if self._todo_manager:
+                    self._todo_manager._rounds_since_todo = 0
+
                 # Build result message
                 result_messages = []
                 for tool_call, result in all_results:
@@ -191,6 +207,11 @@ class Agent:
             else:
                 # No tool call, just respond
                 self.messages.append(Message(role="assistant", content=response_text))
+
+                # Update nag counter (no todo tool, increment)
+                if self._todo_manager:
+                    self._todo_manager.increment_round()
+
                 return AgentResponse(
                     message=response_text,
                     tool_calls=[],

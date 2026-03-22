@@ -6,6 +6,12 @@ from agent.tools.builtin.write import WriteTool
 from agent.tools.builtin.glob import GlobTool
 from agent.tools.builtin.spawn import SpawnTool
 
+# Todo tools (s03)
+from agent.tools.builtin.todo_add import TodoAddTool
+from agent.tools.builtin.todo_list import TodoListTool
+from agent.tools.builtin.todo_done import TodoDoneTool
+from agent.tools.builtin.todo_start import TodoStartTool
+
 # Task tools (s07)
 from agent.tools.builtin.task_create import TaskCreateTool
 from agent.tools.builtin.task_update import TaskUpdateTool
@@ -45,6 +51,11 @@ __all__ = [
     "WriteTool",
     "GlobTool",
     "SpawnTool",
+    # Todo tools
+    "TodoAddTool",
+    "TodoListTool",
+    "TodoDoneTool",
+    "TodoStartTool",
     # Task tools
     "TaskCreateTool",
     "TaskUpdateTool",

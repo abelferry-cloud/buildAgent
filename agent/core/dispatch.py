@@ -70,4 +70,15 @@ class DispatchMap:
         dispatch.register(WriteTool())
         dispatch.register(GlobTool())
 
+        # Import and register todo tools (s03)
+        from agent.tools.builtin.todo_add import TodoAddTool
+        from agent.tools.builtin.todo_list import TodoListTool
+        from agent.tools.builtin.todo_done import TodoDoneTool
+        from agent.tools.builtin.todo_start import TodoStartTool
+
+        dispatch.register(TodoAddTool())
+        dispatch.register(TodoListTool())
+        dispatch.register(TodoDoneTool())
+        dispatch.register(TodoStartTool())
+
         return dispatch

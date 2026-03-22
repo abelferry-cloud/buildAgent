@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 from agent.core.loop import Agent
 from agent.core.dispatch import DispatchMap
+from agent.core.todo import TodoManager
 from agent.llm import DeepSeekClient
 
 # Load .env file if present (override existing env vars to ensure .env takes precedence)
@@ -45,11 +46,24 @@ async def main():
     dispatch = DispatchMap.from_directory("agent/tools/builtin")
     tools = dispatch.list_tools()
 
+    # Initialize TodoManager and wire it to todo tools (s03)
+    todo_manager = TodoManager()
+    from agent.tools.builtin.todo_add import set_todo_manager as set_todo_add_manager
+    from agent.tools.builtin.todo_list import set_todo_manager as set_todo_list_manager
+    from agent.tools.builtin.todo_done import set_todo_manager as set_todo_done_manager
+    from agent.tools.builtin.todo_start import set_todo_manager as set_todo_start_manager
+
+    set_todo_add_manager(todo_manager)
+    set_todo_list_manager(todo_manager)
+    set_todo_done_manager(todo_manager)
+    set_todo_start_manager(todo_manager)
+
     # Create agent (one instance, reused across sessions)
     agent = Agent(
         tools=tools,
         model=args.model,
         system_prompt="You are a helpful coding assistant.",
+        todo_manager=todo_manager,
     )
     agent.set_llm_client(llm_client)
 
