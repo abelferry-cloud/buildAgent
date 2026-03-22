@@ -8,11 +8,11 @@
 
 ## 待办事项
 
-### ❌ 未完成
-- [ ] `SubagentManager` 子代理管理器
-- [ ] `spawn` 工具 - 派生子代理
-- [ ] 独立消息空间
-- [ ] 主对话清洁（隔离）
+### ✅ 已完成
+- [x] `SubagentManager` 子代理管理器 (`agent/core/subagent.py`)
+- [x] `spawn` 工具 - 派生子代理 (`agent/tools/builtin/spawn.py`)
+- [x] 独立消息空间 (每个 Subagent 有自己的 messages[])
+- [x] 主对话清洁（隔离）- send/receive 机制
 
 ### 验证方式
 ```bash

@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from agent.core.loop import Agent
 from agent.core.dispatch import DispatchMap
 from agent.core.todo import TodoManager
+from agent.core.subagent import SubagentManager
 from agent.llm import DeepSeekClient
 
 # Load .env file if present (override existing env vars to ensure .env takes precedence)
@@ -43,7 +44,8 @@ async def main():
     )
 
     # Load tools
-    dispatch = DispatchMap.from_directory("agent/tools/builtin")
+    subagent_manager = SubagentManager()
+    dispatch = DispatchMap.from_directory("agent/tools/builtin", subagent_manager)
     tools = dispatch.list_tools()
 
     # Initialize TodoManager and wire it to todo tools (s03)

@@ -55,7 +55,7 @@ class DispatchMap:
         return name in self._tools
 
     @classmethod
-    def from_directory(cls, tool_dir: str) -> "DispatchMap":
+    def from_directory(cls, tool_dir: str, subagent_manager=None) -> "DispatchMap":
         """Create a DispatchMap by loading tools from a directory."""
         dispatch = cls()
 
@@ -80,5 +80,10 @@ class DispatchMap:
         dispatch.register(TodoListTool())
         dispatch.register(TodoDoneTool())
         dispatch.register(TodoStartTool())
+
+        # Register spawn tool (s04: Subagents)
+        if subagent_manager:
+            from agent.tools.builtin.spawn import SpawnTool
+            dispatch.register(SpawnTool(subagent_manager))
 
         return dispatch
