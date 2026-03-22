@@ -28,7 +28,6 @@ class Skill:
         return [self.name] + self.aliases
 
 
-@dataclass
 class SkillLoader:
     """
     Loads and manages skill definitions.
@@ -40,9 +39,6 @@ class SkillLoader:
     Skills are loaded from files and can be composed with base tools.
     """
 
-    skills_dir: str
-    _skills: dict[str, Skill] = field(default_factory=dict)
-
     def __init__(self, skills_dir: str):
         """
         Initialize the SkillLoader.
@@ -51,6 +47,7 @@ class SkillLoader:
             skills_dir: Directory containing skill definition files
         """
         self.skills_dir = skills_dir
+        self._skills: dict[str, Skill] = {}
         self._load_all_skills()
 
     def _load_all_skills(self) -> None:
@@ -59,9 +56,12 @@ class SkillLoader:
             return
 
         for filename in os.listdir(self.skills_dir):
-            if filename.endswith(".py"):
+            if filename.endswith(".py") and filename not in ("__init__.py", "loader.py"):
                 skill_name = filename[:-3]
-                self.load_skill(skill_name)
+                try:
+                    self.load_skill(skill_name)
+                except (FileNotFoundError, ValueError):
+                    pass  # Skip files that aren't valid skill definitions
 
     def load_skill(self, skill_name: str) -> Skill:
         """

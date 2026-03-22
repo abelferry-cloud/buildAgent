@@ -16,5 +16,11 @@
 
 ### 验证方式
 ```bash
-python -c "from agent.core.subagent import SubagentManager; print('OK')"
+python main.py
 ```
+试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
+
+- Use a subtask to find what testing framework this project uses
+- Delegate: read all .py files and summarize what each one does
+- Use a task to create a new module, then verify it from here
+

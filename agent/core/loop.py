@@ -50,6 +50,7 @@ class Agent:
         max_iterations: int = 100,
         llm_client: Optional[Any] = None,
         todo_manager: Optional[Any] = None,
+        skill_loader: Optional[Any] = None,
     ):
         self.tools = {t.name: t for t in tools}
         self.model = model
@@ -59,10 +60,32 @@ class Agent:
         self._iteration_count = 0
         self._llm_client = llm_client
         self._todo_manager = todo_manager
+        self._skill_loader = skill_loader
 
     def set_llm_client(self, client) -> None:
         """Set the LLM client for API calls."""
         self._llm_client = client
+
+    def _build_skill_context(self) -> str:
+        """
+        Build Layer 1 context: skill names and short descriptions (~100 tokens/skill).
+
+        This implements the two-layer skill injection:
+        - Layer 1: Names + descriptions in system prompt
+        - Layer 2: Full content loaded via load_skill tool
+        """
+        if not self._skill_loader:
+            return ""
+        skills = self._skill_loader.list_skills()
+        if not skills:
+            return ""
+        lines = ["\n## Available Skills:"]
+        for name in skills:
+            skill = self._skill_loader.get_skill(name)
+            if skill:
+                lines.append(f"- {name}: {skill.description}")
+        lines.append("\nUse the 'load_skill' tool to load a skill's full instructions when needed.")
+        return "\n".join(lines)
 
     async def run(self, initial_message: str) -> str:
         """Run the agent with an initial message."""
@@ -142,6 +165,11 @@ class Agent:
             if self._todo_manager and self._todo_manager.should_nag():
                 nag_msg = self._todo_manager.get_nag_message()
                 system_with_tools = f"{system_with_tools}\n\n{nag_msg}"
+
+            # Inject skill context (s05: Layer 1 - names and descriptions only)
+            skill_context = self._build_skill_context()
+            if skill_context:
+                system_with_tools = f"{system_with_tools}{skill_context}"
 
             # Update system message
             messages_for_llm[0] = Message(role="system", content=system_with_tools)

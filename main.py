@@ -11,6 +11,7 @@ from agent.core.loop import Agent
 from agent.core.dispatch import DispatchMap
 from agent.core.todo import TodoManager
 from agent.core.subagent import SubagentManager
+from agent.core.skills import SkillLoader
 from agent.llm import DeepSeekClient
 
 # Load .env file if present (override existing env vars to ensure .env takes precedence)
@@ -45,7 +46,8 @@ async def main():
 
     # Load tools
     subagent_manager = SubagentManager()
-    dispatch = DispatchMap.from_directory("agent/tools/builtin", subagent_manager)
+    skill_loader = SkillLoader(skills_dir="agent/skills")
+    dispatch = DispatchMap.from_directory("agent/tools/builtin", subagent_manager, skill_loader)
     tools = dispatch.list_tools()
 
     # Initialize TodoManager and wire it to todo tools (s03)
@@ -66,6 +68,7 @@ async def main():
         model=args.model,
         system_prompt="You are a helpful coding assistant.",
         todo_manager=todo_manager,
+        skill_loader=skill_loader,
     )
     agent.set_llm_client(llm_client)
 
