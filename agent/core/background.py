@@ -232,6 +232,10 @@ class BackgroundManager:
             try:
                 return future.result(timeout=timeout)
             except TimeoutError:
+                # Check if job completed while waiting
+                job = self._jobs.get(job_id)
+                if job is not None and job.status == JobStatus.COMPLETED:
+                    return job.result
                 raise TimeoutError(f"Job '{job_id}' timed out")
 
     def cancel(self, job_id: str) -> bool:
