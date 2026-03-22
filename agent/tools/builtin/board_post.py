@@ -1,5 +1,7 @@
 """s11: Board Post tool - Post a task to the task board."""
 
+import uuid
+
 from agent.core.autonomous import BoardTask, TaskBoard
 from agent.tools.base import Tool, ToolResult
 
@@ -57,7 +59,7 @@ class BoardPostTool(Tool):
             task = BoardTask(id=task_id, title=title, description=description, priority=priority)
         else:
             task = BoardTask(
-                id="",
+                id=str(uuid.uuid4())[:8],
                 title=title,
                 description=description,
                 priority=priority,
