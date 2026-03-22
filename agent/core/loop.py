@@ -1,10 +1,11 @@
 """s01: The Agent Loop - Core kernel with while loop + single tool execution."""
 
+import asyncio
 import time
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, AsyncIterator, Optional
 
 from agent.tools.base import Tool, ToolCall, ToolResult
 
@@ -59,7 +60,7 @@ class Agent:
         """Set the LLM client for API calls."""
         self._llm_client = client
 
-    def run(self, initial_message: str) -> str:
+    async def run(self, initial_message: str) -> str:
         """Run the agent with an initial message."""
         self.messages = []
         self._iteration_count = 0
@@ -70,16 +71,18 @@ class Agent:
         # Add user message
         self.messages.append(Message(role="user", content=initial_message))
 
-        # Main loop
+        # Main loop - execute steps until done
+        all_messages = []
         while self._iteration_count < self.max_iterations:
-            response = self.step()
+            response = await self.step()
+            all_messages.append(response.message)
+
             if response.done:
-                return response.message
-            self._iteration_count += 1
+                break
 
-        return "Max iterations reached."
+        return "\n\n".join(all_messages)
 
-    def step(self) -> AgentResponse:
+    async def step(self) -> AgentResponse:
         """
         Execute one step of the agent loop.
 
@@ -103,7 +106,7 @@ class Agent:
 
         # If we have an LLM client, use it
         if self._llm_client:
-            return self._llm_step(tool_descriptions)
+            return await self._llm_step(tool_descriptions)
 
         # Fallback: simulate response
         last_msg = self.messages[-1]
@@ -122,14 +125,14 @@ class Agent:
             done=True,
         )
 
-    def _llm_step(self, tool_descriptions: str) -> AgentResponse:
-        """Execute a step using the LLM client (Ollama)."""
+    async def _llm_step(self, tool_descriptions: str) -> AgentResponse:
+        """Execute a step using the LLM client (DeepSeek)."""
         try:
             # Build the prompt with tool context
             messages_for_llm = self.messages.copy()
 
             # Add tool context to system message
-            system_with_tools = f"{self.system_prompt}\n\n## Available Tools:\n{tool_descriptions}\n\n## Instructions:\n- If you need to use a tool, respond with a JSON object: {{\"tool\": \"tool_name\", \"args\": {{\"arg1\": \"value1\"}}}}\n- If no tool is needed, just respond directly."
+            system_with_tools = f"{self.system_prompt}\n\n## Available Tools:\n{tool_descriptions}\n\n## Instructions:\n- If you need to use a tool, respond with a JSON object: {{\"tool\": \"tool_name\", \"args\": {{\"arg1\": \"value1\"}}}}\n- If no tool is needed, just respond directly.\n- IMPORTANT: Use the 'write' tool to create or modify files, NOT bash commands like 'echo' or output redirection."
 
             # Update system message
             messages_for_llm[0] = Message(role="system", content=system_with_tools)
@@ -137,33 +140,52 @@ class Agent:
             # Convert Message objects to dicts for LLM API
             messages_dicts = [self._message_to_dict(m) for m in messages_for_llm]
 
-            # Call LLM
-            response_text = self._llm_client.chat(messages_dicts)
+            # Call LLM (non-blocking async call)
+            result = await self._llm_client.chat(messages_dicts)
+
+            # Check if result is streaming iterator or full text
+            if hasattr(result, '__aiter__'):
+                # It's a streaming iterator - collect all chunks
+                chunks = []
+                async for chunk in result:
+                    chunks.append(chunk)
+                response_text = ''.join(chunks)
+            else:
+                response_text = result
 
             # Check if LLM wants to call a tool
-            tool_call = self._parse_tool_call(response_text)
+            tool_calls = self._parse_tool_calls(response_text)
 
-            if tool_call:
-                # Execute the tool
-                result = self.execute_tool(tool_call)
+            if tool_calls:
+                # Execute all tool calls
+                all_results = []
+                for tool_call in tool_calls:
+                    result = self.execute_tool(tool_call)
+                    all_results.append((tool_call, result))
 
-                # Add assistant message with tool call
+                # Add assistant message with tool calls FIRST (required by API)
                 self.messages.append(Message(
                     role="assistant",
                     content=response_text,
-                    tool_calls=[tool_call],
+                    tool_calls=tool_calls,
                 ))
 
-                # Add tool result
-                self.messages.append(Message(
-                    role="tool",
-                    content=result.output if not result.error else f"Error: {result.error}",
-                    tool_call_id=tool_call.id,
-                ))
+                # Then add tool result messages
+                for tool_call, result in all_results:
+                    self.messages.append(Message(
+                        role="tool",
+                        content=result.output if not result.error else f"Error: {result.error}",
+                        tool_call_id=tool_call.id,
+                    ))
+
+                # Build result message
+                result_messages = []
+                for tool_call, result in all_results:
+                    result_messages.append(f"[Tool {tool_call.name} executed]\n{result.output}")
 
                 return AgentResponse(
-                    message=f"[Tool {tool_call.name} executed]",
-                    tool_calls=[tool_call],
+                    message="\n\n".join(result_messages),
+                    tool_calls=tool_calls,
                     done=False,
                 )
             else:
@@ -195,25 +217,43 @@ class Agent:
 
         return "\n".join(descriptions)
 
-    def _parse_tool_call(self, response: str) -> Optional[ToolCall]:
-        """Parse a tool call from LLM response."""
-        # Try to find JSON in the response
-        try:
-            # Look for JSON object
-            json_match = re.search(r'\{[^{}]*"tool"[^{}]*\}', response, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group())
+    def _parse_tool_calls(self, response: str) -> list[ToolCall]:
+        """Parse all tool calls from LLM response."""
+        import re
+        tool_calls = []
+
+        # Strategy 1: Try to find JSON in markdown code blocks
+        code_block_match = re.search(r'```(?:json)?\s*(\{.*\})', response, re.DOTALL)
+        if code_block_match:
+            try:
+                data = json.loads(code_block_match.group(1))
                 if "tool" in data and "args" in data:
                     import uuid
-                    return ToolCall(
+                    tool_calls.append(ToolCall(
                         id=str(uuid.uuid4())[:8],
                         name=data["tool"],
                         arguments=data["args"],
-                    )
-        except (json.JSONDecodeError, KeyError):
-            pass
+                    ))
+            except json.JSONDecodeError:
+                pass
 
-        return None
+        # Strategy 2: Try to extract any JSON object with nested braces
+        # Pattern matches balanced braces, handling nesting
+        json_pattern = re.compile(r'\{(?:[^{}]|\{[^{}]*\})*\}')
+        for match in json_pattern.finditer(response):
+            try:
+                data = json.loads(match.group())
+                if "tool" in data and "args" in data:
+                    import uuid
+                    tool_calls.append(ToolCall(
+                        id=str(uuid.uuid4())[:8],
+                        name=data["tool"],
+                        arguments=data["args"],
+                    ))
+            except json.JSONDecodeError:
+                continue
+
+        return tool_calls
 
     def execute_tool(self, tool_call: ToolCall) -> ToolResult:
         """Execute a tool call."""
@@ -249,4 +289,18 @@ class Agent:
     def _message_to_dict(self, msg: Message) -> dict[str, Any]:
         """Convert a Message dataclass to a dict for LLM APIs."""
         d = {"role": msg.role, "content": msg.content}
+        if msg.tool_call_id:
+            d["tool_call_id"] = msg.tool_call_id
+        if msg.tool_calls:
+            d["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.name,
+                        "arguments": json.dumps(tc.arguments),
+                    }
+                }
+                for tc in msg.tool_calls
+            ]
         return d

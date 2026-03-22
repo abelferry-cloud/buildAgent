@@ -12,6 +12,14 @@ class BashTool(Tool):
 
     def execute(self, command: str) -> ToolResult:
         """Execute the bash command."""
+        import os
+        import platform
+
+        # Windows compatibility: convert 'mkdir -p dir' to 'mkdir dir'
+        # since -p is not recognized by Windows cmd.exe
+        if platform.system() == "Windows" and command.startswith("mkdir -p "):
+            command = "mkdir " + command[9:]
+
         try:
             result = subprocess.run(
                 command,

@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Coding Guidelines
 
 ### Must-Read Files
-- **PLAN.md**: Before starting any coding task, you must read `PLAN.md` to understand the project's TODO list and implementation plan
+- **PLAN/**: Before starting any coding task, you must read `PLAN/README.md` to understand the 12-step TODO list and implementation plan. Each step (s01-s12) has its own folder with `TODO.md` and `RESULT.md`.
 - **Official Documentation**: Refer to the 12-step learning path at https://learn.shareai.run/zh, using the official site as the primary standard
 ### Accessing Official Documentation
 - Use **Playwright** (`mcp__plugin_playwright_*`) instead of WebSearch to access the official documentation

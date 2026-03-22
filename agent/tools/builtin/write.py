@@ -8,7 +8,7 @@ class WriteTool(Tool):
     """Write content to a file."""
 
     name = "write"
-    description = "Write content to a file. Creates the file if it doesn't exist."
+    description = 'Write content to a file. Args: path (file path), content (text content to write). Creates the file if it doesn\'t exist.'
 
     def execute(self, path: str, content: str) -> ToolResult:
         """Write content to file at path."""
