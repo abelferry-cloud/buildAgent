@@ -1,65 +1,37 @@
-# s10: Team Protocols - 待实现
+# s10: Team Protocols - 实现效果
 
-## 目标功能
+## 核心功能
 
-### 协议架构
-
-```
-Request → FSM (pending) → Response (approved/rejected)
-```
-
-### Shutdown Protocol
+### ProtocolManager（agent/core/protocols.py）
 
 ```python
-@dataclass
-class ShutdownRequest:
-    request_id: str
-    from_agent: str
-    to_agent: str
-    reason: str
-    timestamp: float
+class ProtocolManager:
+    """管理团队协议，协调 agent 之间的通信"""
 
-class ShutdownProtocol:
     def __init__(self):
-        self._pending: dict[str, ShutdownRequest] = {}
-        self._responses: dict[str, bool] = {}  # request_id -> approved?
+        self._teammate_manager = TeammateManager()
+        self._request_protocol = RequestResponseProtocol(self._teammate_manager)
+        self._notification_protocol = NotificationProtocol(self._teammate_manager)
+        self._shutdown_requests: dict[str, ShutdownRequest] = {}
+        self._plan_requests: dict[str, PlanApprovalRequest] = {}
 
-    def request_shutdown(self, to: str, reason: str) -> str:
-        """发送 shutdown 请求"""
-        request_id = generate_uuid()
-        self._pending[request_id] = ShutdownRequest(...)
-        return request_id
+    def create_shutdown_request(self, to: str, reason: str, from_: str = "") -> str:
+        """创建 shutdown 请求"""
 
-    def respond_shutdown(self, request_id: str, approve: bool) -> None:
+    def respond_shutdown(self, request_id: str, approve: bool, from_: str = "") -> None:
         """响应 shutdown 请求"""
-        self._responses[request_id] = approve
-        self._pending.pop(request_id)
 
-    def get_status(self, request_id: str) -> str:
-        """获取请求状态"""
-        if request_id in self._pending:
-            return "pending"
-        if request_id in self._responses:
-            return "approved" if self._responses[request_id] else "rejected"
-        return "unknown"
+    def create_plan_request(self, to: str, plan: str, from_: str = "") -> str:
+        """创建计划审批请求"""
+
+    def respond_plan(self, request_id: str, approve: bool, feedback: str = "", from_: str = "") -> None:
+        """响应计划审批请求"""
+
+    def send_notification(self, to: str, event: str, data: dict, from_: str = "") -> None:
+        """发送通知"""
 ```
 
-### Plan Approval Protocol
-
-```python
-@dataclass
-class PlanApprovalRequest:
-    request_id: str
-    from_agent: str
-    plan: str
-    timestamp: float
-
-class PlanApprovalProtocol:
-    """计划审批协议"""
-    pass
-```
-
-### 协议工具
+### 内置协议工具
 
 | 工具 | 功能 |
 |------|------|
@@ -67,3 +39,45 @@ class PlanApprovalProtocol:
 | `protocol_shutdown_resp` | 响应 shutdown |
 | `protocol_plan_req` | 发送计划审批请求 |
 | `protocol_plan_resp` | 响应计划审批 |
+
+## 集成
+
+### main.py 初始化
+
+```python
+from agent.core.protocols import ProtocolManager
+
+# Initialize ProtocolManager and wire it to protocol tools (s10: Team Protocols)
+protocol_manager = ProtocolManager()
+from agent.tools.builtin.protocol_shutdown_req import set_protocol_manager as set_shutdown_req
+from agent.tools.builtin.protocol_shutdown_resp import set_protocol_manager as set_shutdown_resp
+from agent.tools.builtin.protocol_plan_req import set_protocol_manager as set_plan_req
+from agent.tools.builtin.protocol_plan_resp import set_protocol_manager as set_plan_resp
+
+set_shutdown_req(protocol_manager)
+set_shutdown_resp(protocol_manager)
+set_plan_req(protocol_manager)
+set_plan_resp(protocol_manager)
+```
+
+### dispatch.py 注册
+
+```python
+# Import and register protocol tools (s10: Team Protocols)
+from agent.tools.builtin.protocol_shutdown_req import ProtocolShutdownReqTool
+from agent.tools.builtin.protocol_shutdown_resp import ProtocolShutdownRespTool
+from agent.tools.builtin.protocol_plan_req import ProtocolPlanReqTool
+from agent.tools.builtin.protocol_plan_resp import ProtocolPlanRespTool
+
+dispatch.register(ProtocolShutdownReqTool())
+dispatch.register(ProtocolShutdownRespTool())
+dispatch.register(ProtocolPlanReqTool())
+dispatch.register(ProtocolPlanRespTool())
+```
+
+## 验证
+
+```bash
+python -c "from agent.core.protocols import ProtocolManager; pm = ProtocolManager(); print('OK')"
+python -c "from agent.tools.builtin.protocol_shutdown_req import ProtocolShutdownReqTool; print('OK')"
+```

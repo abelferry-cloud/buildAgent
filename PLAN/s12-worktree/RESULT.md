@@ -6,59 +6,84 @@
 
 ```python
 class WorktreeManager:
-    """Git worktree 管理器，实现目录级隔离"""
+    """管理工作树生命周期，提供目录级隔离"""
 
-    def __init__(self, base_dir: str = "."):
-        self.base_dir = base_dir
+    def __init__(self, base_dir: str):
+        self._base_dir = base_dir
+        self._worktrees: dict[str, Worktree] = {}
 
-    def add(self, name: str, branch: str, create: bool = False) -> dict:
+    def create_worktree(self, name: str, config: WorktreeConfig | None = None) -> Worktree:
         """创建新的 worktree"""
-        result = subprocess.run(
-            ["git", "worktree", "add",
-             f"{self.base_dir}/{name}",
-             branch] + (["-b"] if create else []),
-            capture_output=True,
-            text=True
-        )
-        return {"success": result.returncode == 0, "output": result.stdout}
 
-    def list(self) -> list[dict]:
+    def get_worktree(self, name: str) -> Worktree | None:
+        """获取 worktree"""
+
+    def list_worktrees(self) -> list[Worktree]:
         """列出所有 worktree"""
-        result = subprocess.run(
-            ["git", "worktree", "list", "--porcelain"],
-            capture_output=True,
-            text=True
-        )
-        return self._parse_worktree_list(result.stdout)
 
-    def remove(self, name: str) -> dict:
-        """移除 worktree"""
-        result = subprocess.run(
-            ["git", "worktree", "remove", name],
-            capture_output=True,
-            text=True
-        )
-        return {"success": result.returncode == 0, "output": result.stdout}
+    def destroy_worktree(self, name: str) -> None:
+        """销毁 worktree"""
+
+    def switch_worktree(self, name: str) -> None:
+        """切换到另一个 worktree"""
+
+    def suspend_worktree(self, name: str) -> None:
+        """暂停 worktree"""
+
+    def resume_worktree(self, name: str) -> None:
+        """恢复 worktree"""
+```
+
+### GitWorktreeManager
+
+```python
+class GitWorktreeManager(WorktreeManager):
+    """扩展的 worktree 管理器，支持 git worktree 集成"""
+
+    def create_worktree(self, name: str, config: WorktreeConfig | None = None) -> Worktree:
+        """创建 git worktree（完整的 git 隔离）"""
 ```
 
 ### 内置 Worktree 工具
 
 | 工具 | 功能 |
 |------|------|
-| `worktree_add` | 创建 worktree |
-| `worktree_remove` | 移除 worktree |
+| `worktree_create` | 创建 worktree |
 | `worktree_list` | 列出 worktree |
-| `worktree_status` | 查看状态 |
+| `worktree_switch` | 切换 worktree |
+| `worktree_destroy` | 销毁 worktree |
 
-## 关键设计
+## 集成
 
-- **目录隔离**: 每个任务/代理在独立目录工作
-- **ID 绑定**: 任务 ID 与 worktree 路径关联
-- **并行执行**: 支持多个 worktree 同时工作
+### main.py 初始化
 
+```python
+from agent.core.worktree import WorktreeManager
+
+# Initialize WorktreeManager and wire it to worktree tools (s12: Worktree + Isolation)
+worktree_manager = WorktreeManager(base_dir=".worktrees")
+from agent.tools.builtin.worktree_create import set_worktree_manager as set_wm_create
+# ... set for all worktree tools
 ```
-worktrees/
-├── task-123/      # 任务 123 的工作目录
-├── task-456/      # 任务 456 的工作目录
-└── agent-alpha/   # agent-alpha 的工作目录
+
+### dispatch.py 注册
+
+```python
+# Import and register worktree tools (s12: Worktree + Isolation)
+from agent.tools.builtin.worktree_create import WorktreeCreateTool
+from agent.tools.builtin.worktree_list import WorktreeListTool
+from agent.tools.builtin.worktree_switch import WorktreeSwitchTool
+from agent.tools.builtin.worktree_destroy import WorktreeDestroyTool
+
+dispatch.register(WorktreeCreateTool())
+dispatch.register(WorktreeListTool())
+dispatch.register(WorktreeSwitchTool())
+dispatch.register(WorktreeDestroyTool())
+```
+
+## 验证
+
+```bash
+python -c "from agent.core.worktree import WorktreeManager; print('OK')"
+python -c "from agent.tools.builtin.worktree_create import WorktreeCreateTool; print('OK')"
 ```

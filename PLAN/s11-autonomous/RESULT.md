@@ -8,37 +8,25 @@
 class TaskBoard:
     """基于文件的公共任务板，支持轮询协调"""
 
-    def __init__(self, board_file: str = ".taskboard.json"):
-        self.board_file = board_file
+    def __init__(self, board_file: str):
+        self._board_file = board_file
+        self._tasks: dict[str, BoardTask] = {}
+        self._workers: set[str] = set()
 
-    def post(self, task: dict) -> str:
+    def post_task(self, task: BoardTask | None = None, title: str = "", ...) -> str:
         """发布任务"""
-        tasks = self._read()
-        task["id"] = generate_id()
-        task["status"] = "available"
-        tasks.append(task)
-        self._write(tasks)
-        return task["id"]
 
-    def poll(self, capabilities: list[str]) -> list[dict]:
-        """轮询匹配能力的任务"""
-        tasks = self._read()
-        return [
-            t for t in tasks
-            if t["status"] == "available"
-            and any(cap in t.get("required_capabilities", []) for cap in capabilities)
-        ]
-
-    def claim(self, task_id: str, agent: str) -> bool:
+    def claim_task(self, task_id: str, worker: str) -> bool:
         """认领任务"""
-        tasks = self._read()
-        for task in tasks:
-            if task["id"] == task_id and task["status"] == "available":
-                task["status"] = "claimed"
-                task["agent"] = agent
-                self._write(tasks)
-                return True
-        return False
+
+    def complete_task(self, task_id: str, result: dict | None = None) -> bool:
+        """完成任务"""
+
+    def poll(self, worker: str, timeout: float = 30.0) -> BoardTask | None:
+        """轮询可用任务（自动认领）"""
+
+    def get_board_state(self) -> BoardState:
+        """获取任务板状态"""
 ```
 
 ### AutonomousGovernor
@@ -47,23 +35,59 @@ class TaskBoard:
 class AutonomousGovernor:
     """自主代理治理器"""
 
-    def __init__(self, board: TaskBoard):
-        self.board = board
-        self._timeout = 300  # 5 minutes
+    def __init__(self, agent: Agent, config: GovernorConfig | None = None):
+        self._config = config or GovernorConfig()
 
-    def monitor(self, agent_name: str) -> None:
-        """监控代理，超时后升级"""
-        pass
+    def should_continue(self) -> bool:
+        """检查是否应该继续执行"""
 
-    def self_correct(self, error: dict) -> dict:
-        """错误自愈"""
-        # TODO: 实现实际逻辑
-        return {"action": "retry", "attempts": 1}
+    def check_timeouts(self) -> list[TimeoutAction]:
+        """检查超时条件"""
+
+    def apply_timeout_action(self, task_id: str, action: TimeoutAction) -> dict:
+        """应用超时动作"""
 ```
 
-## 待加强
+### 内置任务板工具
 
-- 自动轮询机制
-- 能力匹配算法
-- 超时升级流程
-- 自我纠错策略
+| 工具 | 功能 |
+|------|------|
+| `board_post` | 发布任务到任务板 |
+| `board_poll` | 轮询可用任务（自动认领） |
+| `board_claim` | 认领特定任务 |
+| `board_complete` | 完成任务 |
+
+## 集成
+
+### main.py 初始化
+
+```python
+from agent.core.autonomous import TaskBoard
+
+# Initialize TaskBoard and wire it to board tools (s11: Autonomous Agents)
+task_board = TaskBoard(board_file=".taskboard.json")
+from agent.tools.builtin.board_post import set_board as set_board_post
+# ... set for all board tools
+```
+
+### dispatch.py 注册
+
+```python
+# Import and register board tools (s11: Autonomous Agents)
+from agent.tools.builtin.board_post import BoardPostTool
+from agent.tools.builtin.board_poll import BoardPollTool
+from agent.tools.builtin.board_claim import BoardClaimTool
+from agent.tools.builtin.board_complete import BoardCompleteTool
+
+dispatch.register(BoardPostTool())
+dispatch.register(BoardPollTool())
+dispatch.register(BoardClaimTool())
+dispatch.register(BoardCompleteTool())
+```
+
+## 验证
+
+```bash
+python -c "from agent.core.autonomous import TaskBoard, AutonomousGovernor; print('OK')"
+python -c "from agent.tools.builtin.board_post import BoardPostTool; print('OK')"
+```

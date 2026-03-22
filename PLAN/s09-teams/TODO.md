@@ -8,15 +8,17 @@
 
 ## 待办事项
 
-### ❌ 未完成
-- [ ] `TeammateManager` 团队管理器（`agent/core/teams.py`）
-- [ ] 文件-based 邮箱系统（`agent/state/mailbox.py`）
-- [ ] 异步消息传递
-- [ ] 内置工具:
-  - [ ] `team_send` - 发送消息
-  - [ ] `team_broadcast` - 广播消息
-  - [ ] `team_list` - 列出团队成员
-  - [ ] `team_status` - 查看状态
+### ✅ 已完成
+- [x] `TeammateManager` 团队管理器（`agent/core/teams.py`）
+- [x] 文件-based 邮箱系统（`agent/state/mailbox.py`）
+- [x] 异步消息传递
+- [x] 内置工具:
+  - [x] `team_send` - 发送消息
+  - [x] `team_broadcast` - 广播消息
+  - [x] `team_list` - 列出团队成员
+  - [x] `team_status` - 查看状态
+- [x] TeammateManager 在 `main.py` 中初始化并连接到 team tools
+- [x] Team tools 在 `agent/core/dispatch.py` 中注册
 
 ### 🔴 高优先级
 - [ ] 团队成员健康检查

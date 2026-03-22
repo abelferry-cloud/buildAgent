@@ -8,15 +8,17 @@
 
 ## 待办事项
 
-### ❌ 未完成
-- [ ] `WorktreeManager` 工作树管理（`agent/core/worktree.py`）
-- [ ] Git worktree 操作
-- [ ] 目录隔离机制
-- [ ] Worktree 工具:
-  - [ ] `worktree_add`
-  - [ ] `worktree_remove`
-  - [ ] `worktree_list`
-  - [ ] `worktree_status`
+### ✅ 已完成
+- [x] `WorktreeManager` 工作树管理（`agent/core/worktree.py`）
+- [x] `GitWorktreeManager` Git worktree 操作
+- [x] 目录隔离机制
+- [x] Worktree 工具:
+  - [x] `worktree_create` - 创建 worktree
+  - [x] `worktree_list` - 列出 worktree
+  - [x] `worktree_switch` - 切换 worktree
+  - [x] `worktree_destroy` - 销毁 worktree
+- [x] WorktreeManager 在 `main.py` 中初始化并连接到 worktree tools
+- [x] Worktree tools 在 `agent/core/dispatch.py` 中注册
 
 ### 验证方式
 ```bash

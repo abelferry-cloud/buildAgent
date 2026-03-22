@@ -8,16 +8,16 @@
 
 ## 待办事项
 
-### ❌ 未完成
-- [ ] `TaskBoard` 文件轮询（`agent/core/autonomous.py`）
-- [ ] `AutonomousGovernor` 治理器
-
-### 🔴 高优先级 - 需要加强
-- [ ] **自动扫描 TaskBoard**: teammate 自动轮询可用任务
-- [ ] **基于能力的任务认领**: 根据能力描述匹配任务
-- [ ] **超时/重试/升级逻辑完善**
-- [ ] `self_correct()` 实际逻辑实现
-- [ ] 错误分类和自动恢复策略
+### ✅ 已完成
+- [x] `TaskBoard` 文件轮询（`agent/core/autonomous.py`）
+- [x] `AutonomousGovernor` 治理器
+- [x] 内置工具:
+  - [x] `board_post` - 发布任务到任务板
+  - [x] `board_poll` - 轮询可用任务
+  - [x] `board_claim` - 认领特定任务
+  - [x] `board_complete` - 完成任务
+- [x] TaskBoard 在 `main.py` 中初始化并连接到 board tools
+- [x] Board tools 在 `agent/core/dispatch.py` 中注册
 
 ### 验证方式
 ```bash
