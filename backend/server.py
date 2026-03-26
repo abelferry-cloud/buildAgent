@@ -2,15 +2,27 @@
 
 import asyncio
 import json
+import os
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 
+from agent.llm.deepseek import DeepSeekClient
+from agent.agents.main_agent import MainAgent
+
 app = FastAPI(title="Office Assistant")
 
-# Connection manager for WebSocket
+# Initialize Main Agent
+llm_client = DeepSeekClient(
+    api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+    model="deepseek-chat",
+    api_base="https://api.deepseek.com/v1",
+)
+main_agent = MainAgent(llm_client=llm_client)
+
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: dict[str, WebSocket] = {}
@@ -37,7 +49,6 @@ manager = ConnectionManager()
 
 @app.get("/")
 async def get_html():
-    """Serve the UI (or redirect to build output)."""
     return HTMLResponse("<h1>Office Assistant Backend Running</h1>")
 
 
@@ -49,14 +60,24 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             data = await websocket.receive_text()
             message = json.loads(data)
 
-            # Echo back for now (later: route to agent)
-            await manager.send_message({
-                "type": "response",
-                "content": f"Received: {data}",
-                "agent": "system",
-            }, client_id)
+            if message.get("type") == "message":
+                user_content = message.get("content", "")
+
+                # Send to Main Agent
+                response = await main_agent.process(user_content)
+
+                await manager.send_message({
+                    "type": "response",
+                    "content": response,
+                    "agent": "Main Agent",
+                }, client_id)
     except WebSocketDisconnect:
         manager.disconnect(client_id)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await main_agent.close()
 
 
 if __name__ == "__main__":
