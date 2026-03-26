@@ -22,6 +22,15 @@ llm_client = DeepSeekClient(
 )
 main_agent = MainAgent(llm_client=llm_client)
 
+# Agent status tracking
+agent_status: dict[str, str] = {
+    "Main": "idle",
+    "Search": "idle",
+    "Schedule": "idle",
+    "Document": "idle",
+    "Email": "offline",
+}
+
 
 class ConnectionManager:
     def __init__(self):
@@ -45,6 +54,24 @@ class ConnectionManager:
 
 
 manager = ConnectionManager()
+broadcast_task: asyncio.Task | None = None
+
+
+async def broadcast_agent_status():
+    """Periodic task to broadcast agent status every 5 seconds."""
+    while True:
+        await asyncio.sleep(5)
+        agents = [{"name": name, "status": status} for name, status in agent_status.items()]
+        await manager.broadcast({
+            "type": "agent_status",
+            "agents": agents,
+        })
+
+
+@app.on_event("startup")
+async def startup_event():
+    global broadcast_task
+    broadcast_task = asyncio.create_task(broadcast_agent_status())
 
 
 @app.get("/")
@@ -77,6 +104,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    global broadcast_task
+    if broadcast_task:
+        broadcast_task.cancel()
+        try:
+            await broadcast_task
+        except asyncio.CancelledError:
+            pass
     await main_agent.close()
 
 

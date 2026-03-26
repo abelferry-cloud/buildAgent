@@ -8,14 +8,22 @@ export interface Message {
   timestamp: number
 }
 
+export interface AgentStatus {
+  name: string
+  status: 'idle' | 'busy' | 'offline'
+}
+
 interface ChatState {
   messages: Message[]
+  agentStatus: AgentStatus[]
   addMessage: (msg: Omit<Message, 'id' | 'timestamp'>) => void
   clearMessages: () => void
+  setAgentStatus: (agents: AgentStatus[]) => void
 }
 
 export const useChatStore = create<ChatState>((set) => ({
   messages: [],
+  agentStatus: [],
   addMessage: (msg) => set((state) => ({
     messages: [...state.messages, {
       ...msg,
@@ -24,4 +32,5 @@ export const useChatStore = create<ChatState>((set) => ({
     }]
   })),
   clearMessages: () => set({ messages: [] }),
+  setAgentStatus: (agents) => set({ agentStatus: agents }),
 }))

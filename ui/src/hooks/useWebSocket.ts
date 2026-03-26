@@ -4,6 +4,7 @@ import { useChatStore } from '../stores/chatStore'
 export function useWebSocket(url: string) {
   const ws = useRef<WebSocket | null>(null)
   const addMessage = useChatStore((s) => s.addMessage)
+  const setAgentStatus = useChatStore((s) => s.setAgentStatus)
 
   const connect = useCallback(() => {
     ws.current = new WebSocket(url)
@@ -16,6 +17,8 @@ export function useWebSocket(url: string) {
           content: data.content,
           agent: data.agent,
         })
+      } else if (data.type === 'agent_status') {
+        setAgentStatus(data.agents)
       }
     }
 
@@ -23,7 +26,7 @@ export function useWebSocket(url: string) {
       // Auto reconnect after 3 seconds
       setTimeout(connect, 3000)
     }
-  }, [url, addMessage])
+  }, [url, addMessage, setAgentStatus])
 
   useEffect(() => {
     connect()
