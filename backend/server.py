@@ -11,16 +11,40 @@ from fastapi.responses import HTMLResponse
 
 from agent.llm.deepseek import DeepSeekClient
 from agent.agents.main_agent import MainAgent
+from agent.agents.search_agent import SearchAgent
+from agent.agents.schedule_agent import ScheduleAgent
+from agent.agents.document_agent import DocumentAgent
+from agent.agents.email_agent import EmailAgent
+from agent.agents.file_agent import FileAgent
+from agent.agents.calendar_agent import CalendarAgent
 
 app = FastAPI(title="Office Assistant")
 
-# Initialize Main Agent
+# Initialize LLM client
 llm_client = DeepSeekClient(
     api_key=os.getenv("DEEPSEEK_API_KEY", ""),
     model="deepseek-chat",
     api_base="https://api.deepseek.com/v1",
 )
-main_agent = MainAgent(llm_client=llm_client)
+
+# Initialize all specialized agents
+search_agent = SearchAgent()
+schedule_agent = ScheduleAgent()
+document_agent = DocumentAgent()
+email_agent = EmailAgent()
+file_agent = FileAgent()
+calendar_agent = CalendarAgent()
+
+# Initialize Main Agent with all specialized agents
+main_agent = MainAgent(
+    llm_client=llm_client,
+    search_agent=search_agent,
+    schedule_agent=schedule_agent,
+    document_agent=document_agent,
+    email_agent=email_agent,
+    file_agent=file_agent,
+    calendar_agent=calendar_agent,
+)
 
 # Agent status tracking
 agent_status: dict[str, str] = {
