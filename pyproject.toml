@@ -12,6 +12,9 @@ dependencies = [
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
     "apscheduler>=3.10.0",
+    "python-pptx>=0.6.0",
+    "python-docx>=0.8.0",
+    "openpyxl>=3.0.0",
 ]
 
 [project.optional-dependencies]
