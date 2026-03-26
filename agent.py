@@ -25,7 +25,7 @@ def get_api_key():
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="BuildAgent - A general-purpose AI Agent (DeepSeek)")
+    parser = argparse.ArgumentParser(description="LOOM CLI - A general-purpose AI Agent (DeepSeek)")
     parser.add_argument("--task", type=str, help="Initial task to execute")
     parser.add_argument("--model", type=str, default="deepseek-chat", help="Model name (DeepSeek)")
     parser.add_argument("--api-key", type=str, help="DeepSeek API key (optional, can use .env or DEEPSEEK_API_KEY env var)")

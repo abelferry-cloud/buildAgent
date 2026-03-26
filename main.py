@@ -1,4 +1,4 @@
-"""CLI entry point for the BuildAgent with DeepSeek."""
+"""CLI entry point for the LOOM CLI with DeepSeek."""
 
 import argparse
 import asyncio
@@ -31,7 +31,7 @@ def get_api_key_from_env():
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="BuildAgent with DeepSeek")
+    parser = argparse.ArgumentParser(description="LOOM CLI with DeepSeek")
     parser.add_argument("--api-key", help="DeepSeek API key (optional, can use .env)")
     parser.add_argument("--model", default="deepseek-chat", help="Model name")
     parser.add_argument("--api-base", default="https://api.deepseek.com", help="API base URL")
@@ -39,7 +39,6 @@ async def main():
 
     # Resolve API key: CLI arg > .env > env var
     api_key = args.api_key or get_api_key_from_env()
-    print(f"[DEBUG] API Key loaded: {api_key[:10]}..." if api_key else "[DEBUG] No API key loaded")
     if not api_key:
         print("Error: No API key provided. Set DEEPSEEK_API_KEY in .env or pass --api-key")
         sys.exit(1)
@@ -160,33 +159,83 @@ async def main():
     compression_manager = CompressionManager(agent=agent, config=config)
     agent._compression_manager = compression_manager
 
-    print("欢迎使用 BuildAgent（DeepSeek驱动）！输入 exit 或 quit 退出。")
+    # Create UI console
+    tool_names = [tool.name for tool in tools]
+    from agent.ui.console import LoomConsole
+    console = LoomConsole(
+        version="0.1.0",
+        model=args.model,
+        tool_names=tool_names,
+    )
+
+    # Print header and welcome
+    console.print_header()
+    console.print_welcome()
 
     session_count = 0
     try:
         while True:
             try:
-                user_input = input(f"[Session #{session_count + 1}] > ").strip()
+                # Print styled prompt
+                console._print_prompt()
+
+                # Get user input using standard input
+                user_input = await asyncio.get_event_loop().run_in_executor(
+                    None, sys.stdin.readline
+                )
+                user_input = user_input.rstrip("\n\r")
             except (EOFError, KeyboardInterrupt):
-                print("\n再见！")
                 break
 
-            if not user_input:
+            if not user_input.strip():
                 continue
 
-            # Check exit condition
             if user_input.lower() in ("exit", "quit"):
-                print("再见！")
                 break
 
             session_count += 1
 
-            # Run agent with user input (async)
-            result = await agent.run(user_input)
-            print(result)
-            print()  # 空行分隔
+            # Add user message
+            console.add_user_message(user_input)
+
+            # Run agent and stream response
+            console._is_streaming = True
+
+            # Create streaming display
+            from agent.ui.streaming import StreamingOutput
+            streaming_output = StreamingOutput(console.console)
+            from rich.live import Live
+            live = Live(
+                streaming_output.get_renderable(),
+                console=console.console,
+                refresh_per_second=30,
+                transient=False,
+                auto_refresh=True,
+            )
+            live.start()
+
+            # Stream the LLM response
+            try:
+                full_response = ""
+                async for chunk in agent.run_stream(user_input):
+                    if not console._is_streaming:
+                        break
+                    full_response += chunk
+                    streaming_output.append(chunk)
+                    live.update(streaming_output.get_renderable())
+                    await asyncio.sleep(0)
+            finally:
+                live.stop()
+                console._is_streaming = False
+
+            # Add final message to history
+            if full_response:
+                msg = console.messages[-1]
+                msg.content = full_response
+
     finally:
-        # Clean up async client
+        console.console.print()
+        console.console.print("Goodbye!", style="bold #89b4fa")
         await llm_client.close()
 
 
