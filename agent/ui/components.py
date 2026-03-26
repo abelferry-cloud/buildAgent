@@ -18,6 +18,17 @@ from .theme import COLORS, STYLES, get_focused_input_style, get_default_input_st
 BOX_DEFAULT = None
 
 
+# ASCII Art Logo for LOOM CLI
+# ASCII Art Logo for LOOM CLI
+LOOM_LOGO = r"""
+   __    ____  ____  __  __
+  / /   / __ \/ __ \/  \/  \
+ / /___/ /_/ / /_/ / /\_/ / /
+/_____/\____/\____/_/  /_/ /
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""
+
+
 class Header:
     """Startup header panel showing logo, version, model, and directory."""
 
@@ -34,11 +45,20 @@ class Header:
 
     def render(self) -> Panel:
         """Render the header panel."""
-        # Logo line
+        # Logo line - ASCII art logo with gradient effect
         logo = Text()
-        logo.append("  [B] ", style="accent bold")
-        logo.append("LOOM CLI", style="accent bold")
-        logo.append(f"  v{self.version}", style="muted")
+        # Top part in bright cyan
+        logo.append("   __    ____  ____  __  __\n", style="bold #00d4ff")
+        logo.append("  / /   / __ \\/ __ \\/  \\/  \\\n", style="bold #00bbee")
+        logo.append(" / /___/ /_/ / /_/ / /\\_/ / /\n", style="bold #00aaee")
+        logo.append("/_____/\\____/\\____/_/  /_/ /\n", style="bold #0099dd")
+        logo.append("^^^^^^^^^^^^^^^^^^^^^^^^^^^^", style="bold #f9e2af")
+
+        # Version below logo
+        version_line = Text()
+        version_line.append(f"  v{self.version}", style="muted")
+        version_line.append("  -  ", style="text_muted")
+        version_line.append("AI Coding Assistant", style="accent")
 
         # Info lines
         info = Table(box=None, show_header=False, padding=0, pad_edge=False)
@@ -78,7 +98,7 @@ class Header:
         info.add_row(welcome)
 
         # Combine logo and info
-        content = Group(logo, "", info)
+        content = Group(logo, version_line, "", info)
 
         return Panel(
             content,
