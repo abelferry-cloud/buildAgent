@@ -1,8 +1,14 @@
+import { TaskList } from './TaskList'
+import { NotificationCenter } from './NotificationCenter'
+import { AgentStatus } from './AgentStatus'
+
 export function Sidebar() {
   return (
-    <div className="p-4">
+    <div className="h-full overflow-y-auto p-4">
       <h2 className="font-bold mb-4">助手面板</h2>
-      <div className="text-gray-500">任务列表、通知、Agent 状态</div>
+      <TaskList />
+      <NotificationCenter />
+      <AgentStatus />
     </div>
   )
 }
