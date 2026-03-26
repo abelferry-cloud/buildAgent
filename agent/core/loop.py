@@ -111,6 +111,141 @@ class Agent:
 
         return "\n\n".join(all_messages)
 
+    async def run_stream(self, initial_message: str) -> AsyncIterator[str]:
+        """
+        Run the agent with streaming output.
+
+        Yields text chunks as they become available from the LLM.
+        For tool calls, yields the tool execution result instead.
+        """
+        self.messages = []
+        self._iteration_count = 0
+
+        # Add system prompt
+        self.messages.append(Message(role="system", content=self.system_prompt))
+
+        # Add user message
+        self.messages.append(Message(role="user", content=initial_message))
+
+        # Main loop - execute steps until done
+        while self._iteration_count < self.max_iterations:
+            async for chunk in self._step_stream():
+                yield chunk
+
+            # Check if done after iteration
+            if self.messages and self.messages[-1].role == "assistant":
+                last_msg = self.messages[-1]
+                # If last assistant message has no tool calls, we're done
+                if not last_msg.tool_calls:
+                    break
+
+    async def _step_stream(self) -> AsyncIterator[str]:
+        """
+        Execute one step with streaming LLM output.
+
+        Yields text chunks as they arrive from the LLM.
+        """
+        self._iteration_count += 1
+
+        if not self.messages:
+            yield "No messages."
+            return
+
+        tool_descriptions = self._build_tool_descriptions()
+
+        if self._llm_client:
+            async for chunk in self._llm_step_stream(tool_descriptions):
+                yield chunk
+            return
+
+        # Fallback: simulate response
+        last_msg = self.messages[-1]
+        if last_msg.role == "user":
+            response_text = f"Echo: {last_msg.content} (No LLM configured)"
+            self.messages.append(Message(role="assistant", content=response_text))
+            yield response_text
+            return
+
+        self.messages.append(Message(role="assistant", content="Conversation complete."))
+        yield "Conversation complete."
+
+    async def _llm_step_stream(self, tool_descriptions: str) -> AsyncIterator[str]:
+        """
+        Execute a step using the LLM client with streaming output.
+
+        Yields text chunks as they arrive. For tool calls, yields execution result.
+        """
+        try:
+            messages_for_llm = self.messages.copy()
+
+            system_with_tools = f"{self.system_prompt}\n\n## Available Tools:\n{tool_descriptions}\n\n## Instructions:\n- If you need to use a tool, respond with a JSON object: {{\"tool\": \"tool_name\", \"args\": {{\"arg1\": \"value1\"}}}}\n- If no tool is needed, just respond directly."
+
+            if self._todo_manager and self._todo_manager.should_nag():
+                nag_msg = self._todo_manager.get_nag_message()
+                system_with_tools = f"{system_with_tools}\n\n{nag_msg}"
+
+            skill_context = self._build_skill_context()
+            if skill_context:
+                system_with_tools = f"{system_with_tools}{skill_context}"
+
+            messages_for_llm[0] = Message(role="system", content=system_with_tools)
+            messages_dicts = [self._message_to_dict(m) for m in messages_for_llm]
+
+            # Call LLM with streaming
+            result = await self._llm_client.chat(messages_dicts, stream=True)
+
+            # Collect streaming response while yielding chunks
+            response_text = ""
+            async for chunk in result:
+                response_text += chunk
+                yield chunk
+
+            # Check if LLM wants to call a tool (only after full response)
+            tool_calls = self._parse_tool_calls(response_text)
+
+            if tool_calls:
+                all_results = []
+                for tool_call in tool_calls:
+                    result = self.execute_tool(tool_call)
+                    all_results.append((tool_call, result))
+
+                self.messages.append(Message(
+                    role="assistant",
+                    content=response_text,
+                    tool_calls=tool_calls,
+                ))
+
+                for tool_call, result in all_results:
+                    self.messages.append(Message(
+                        role="tool",
+                        content=result.output if not result.error else f"Error: {result.error}",
+                        tool_call_id=tool_call.id,
+                    ))
+
+                if self._todo_manager:
+                    self._todo_manager._rounds_since_todo = 0
+
+                if self._compression_manager:
+                    self.messages = self._compression_manager.compress_if_needed(self.messages)
+
+                result_messages = []
+                for tool_call, result in all_results:
+                    msg = f"[Tool {tool_call.name} executed]\n{result.output}"
+                    result_messages.append(msg)
+                    yield msg
+            else:
+                self.messages.append(Message(role="assistant", content=response_text))
+
+                if self._todo_manager:
+                    self._todo_manager.increment_round()
+
+                if self._compression_manager:
+                    self.messages = self._compression_manager.compress_if_needed(self.messages)
+
+        except Exception as e:
+            error_msg = f"Error: {str(e)}"
+            yield error_msg
+
     async def step(self) -> AgentResponse:
         """
         Execute one step of the agent loop.
