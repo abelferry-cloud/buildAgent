@@ -1,8 +1,8 @@
-# BuildAgent 12 步学习路径
+# LOOM CLI 12 步学习路径
 
 ## 概述
 
-BuildAgent 是一个通用 AI Agent，遵循 12 步学习路径架构。每一步代表一个递进的能力层级，从简单的 Agent Loop 到复杂的多 Agent 团队协作。
+LOOM CLI 是一个通用 AI Agent，遵循 12 步学习路径架构。每一步代表一个递进的能力层级，从简单的 Agent Loop 到复杂的多 Agent 团队协作。
 
 ## 12 步总览
 

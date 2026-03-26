@@ -31,7 +31,7 @@ pip install -e ".[dev]"
 
 ## Architecture Overview
 
-BuildAgent is a general-purpose AI Agent following a **12-step progression** architecture. The codebase is organized around step modules (s01, s02, s04, etc.).
+LOOM CLI is a general-purpose AI Agent following a **12-step progression** architecture. The codebase is organized around step modules (s01, s02, s04, etc.).
 
 ### Core Agent Loop (`agent/core/loop.py`)
 The central `Agent` class implements a while-loop kernel:

@@ -1,4 +1,4 @@
-# BuildAgent 交互模式实施计划
+# LOOM CLI 交互模式实施计划
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -15,7 +15,7 @@
 ### 创建 `.env.example`
 
 **Files:**
-- Create: `D:\IDEA_Projects\BuildAgent\.env.example`
+- Create: `D:\IDEA_Projects\LOOM-CLI\.env.example`
 
 - [ ] **Step 1: 创建模板文件**
 
@@ -29,7 +29,7 @@ DEEPSEEK_API_KEY=your_api_key_here
 ### 创建 `.env` 文件
 
 **Files:**
-- Create: `D:\IDEA_Projects\BuildAgent\.env`
+- Create: `D:\IDEA_Projects\LOOM-CLI\.env`
 
 - [ ] **Step 1: 创建 `.env` 文件**
 
@@ -42,7 +42,7 @@ DEEPSEEK_API_KEY=sk-4bd79a43012d48f580dc18879a6dd4af
 ### 检查并更新 `.gitignore`
 
 **Files:**
-- Create: `D:\IDEA_Projects\BuildAgent\.gitignore`
+- Create: `D:\IDEA_Projects\LOOM-CLI\.gitignore`
 
 - [ ] **Step 1: 创建 `.gitignore`（项目无此文件）**
 
@@ -57,12 +57,12 @@ __pycache__/
 ## Chunk 2: 修改 `main.py` — REPL 循环
 
 **Files:**
-- Modify: `D:\IDEA_Projects\BuildAgent\main.py`
+- Modify: `D:\IDEA_Projects\LOOM-CLI\main.py`
 
 - [ ] **Step 1: 重写 `main.py`**
 
 ```python
-"""CLI entry point for the BuildAgent with DeepSeek."""
+"""CLI entry point for the LOOM CLI with DeepSeek."""
 
 import argparse
 import os
@@ -84,7 +84,7 @@ def get_api_key_from_env():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="BuildAgent with DeepSeek")
+    parser = argparse.ArgumentParser(description="LOOM CLI with DeepSeek")
     parser.add_argument("--api-key", help="DeepSeek API key (optional, can use .env)")
     parser.add_argument("--model", default="deepseek-chat", help="Model name")
     parser.add_argument("--api-base", default="https://api.deepseek.com/v1", help="API base URL")
@@ -115,7 +115,7 @@ def main():
     )
     agent.set_llm_client(llm_client)
 
-    print("欢迎使用 BuildAgent（DeepSeek驱动）！输入 exit 或 quit 退出。")
+    print("欢迎使用 LOOM CLI（DeepSeek驱动）！输入 exit 或 quit 退出。")
 
     session_count = 0
     while True:
@@ -148,13 +148,13 @@ if __name__ == "__main__":
 - [ ] **Step 2: 测试 REPL 模式**
 
 ```bash
-cd D:\IDEA_Projects\BuildAgent
+cd D:\IDEA_Projects\LOOM-CLI
 python main.py
 ```
 
 预期：
 ```
-欢迎使用 BuildAgent（DeepSeek驱动）！输入 exit 或 quit 退出。
+欢迎使用 LOOM CLI（DeepSeek驱动）！输入 exit 或 quit 退出。
 [Session #1] > 你好
 [AI 回复...]
 [Session #2] > 帮我写一个快速排序
